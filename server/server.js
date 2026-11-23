@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
-import { getAllBooks, getBookById } from './booksStore.js';
-import { parseId } from './validate.js';
+import { getAllBooks, getBookById, findDuplicate, createBook } from './booksStore.js';
+import { parseId, isPlainObject, buildBook, validateBook } from './validate.js';
 
 
 const app = express();
@@ -21,6 +21,29 @@ app.use(express.json());
 app.get('/api/books', async (req, res) => {
   const books = await getAllBooks();
   res.json(books);
+});
+
+// POST /api/books -> create a book from a complete body
+app.post('/api/books', async (req, res) => {
+  if (!isPlainObject(req.body)) {
+    return res.status(400).json({ error: 'Request body must be a JSON object' });
+  }
+
+  const book = buildBook(req.body); // id and unknown fields are dropped here
+  const validationError = validateBook(book);
+  if (validationError) {
+    return res.status(400).json({ error: validationError });
+  }
+
+  const duplicate = await findDuplicate(book.title, book.author);
+  if (duplicate) {
+    return res.status(409).json({
+      error: `A book with this title and author already exists (id ${duplicate.id})`,
+    });
+  }
+
+  const created = await createBook(book);
+  res.status(201).location(`/api/books/${created.id}`).json(created);
 });
 
 app.get('/api/books/:id', async (req, res) => {

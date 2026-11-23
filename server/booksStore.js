@@ -24,3 +24,25 @@ export async function getBookById(id) {
   await sleep(DELAY_MS);
   return books.find((book) => book.id === id) ?? null;
 }
+
+export async function findDuplicate(title, author, ignoreId = null) {
+  await sleep(DELAY_MS);
+  const titleLower = title.toLowerCase();
+  const authorLower = author.toLowerCase();
+  return (
+    books.find(
+      (book) =>
+        book.id !== ignoreId &&
+        book.title.toLowerCase() === titleLower &&
+        book.author.toLowerCase() === authorLower
+    ) ?? null
+  );
+}
+
+export async function createBook(data) {
+  await sleep(DELAY_MS);
+  const newBook = { id: nextId, ...data };
+  nextId += 1;
+  books = [...books, newBook]; 
+  return newBook;
+}
