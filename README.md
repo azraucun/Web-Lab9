@@ -60,10 +60,186 @@ No Vite proxy is used: the server sends the CORS headers itself with the `cors` 
 
 ## Testing evidence (`curl --include`)
 
-<!-- curl-evidence.txt içeriğini aşağıdaki ``` işaretlerinin arasına yapıştır -->
-
 ```
-PASTE HERE
+### GET /api/stats (before)
+HTTP/1.1 200 OK
+X-Powered-By: Express
+Access-Control-Allow-Origin: http://localhost:5173
+Vary: Origin
+Content-Type: application/json; charset=utf-8
+Content-Length: 125
+ETag: W/"7d-t8NV+kDC5G3mKztQxt4BwC1fyzk"
+Date: Tue, 24 Nov 2026 20:28:09 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+{"total":7,"read":4,"unread":3,"averageRating":4,"byGenre":{"fantasy":2,"fiction":2,"history":1,"science":1,"non-fiction":1}}
+
+### POST /api/books -> 201 + Location
+HTTP/1.1 201 Created
+X-Powered-By: Express
+Access-Control-Allow-Origin: http://localhost:5173
+Vary: Origin
+Location: /api/books/8
+Content-Type: application/json; charset=utf-8
+Content-Length: 129
+ETag: W/"81-Vl5L+5ykpPwh5BciDCjntWZFa/c"
+Date: Tue, 24 Nov 2026 20:28:09 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+{"id":8,"title":"The Little Prince","author":"Antoine de Saint-Exupery","year":1943,"genre":"fiction","read":false,"rating":null}
+
+### POST duplicate -> 409
+HTTP/1.1 409 Conflict
+X-Powered-By: Express
+Access-Control-Allow-Origin: http://localhost:5173
+Vary: Origin
+Content-Type: application/json; charset=utf-8
+Content-Length: 67
+ETag: W/"43-H8JnRC3aeCKiLNx/oztpppSQB8E"
+Date: Tue, 24 Nov 2026 20:28:09 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+{"error":"A book with this title and author already exists (id 8)"}
+
+### POST invalid body -> 400
+HTTP/1.1 400 Bad Request
+X-Powered-By: Express
+Access-Control-Allow-Origin: http://localhost:5173
+Vary: Origin
+Content-Type: application/json; charset=utf-8
+Content-Length: 57
+ETag: W/"39-2hxkQVGUygT77eAZY8u2BQSh9Ts"
+Date: Tue, 24 Nov 2026 20:28:09 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+{"error":"year must be an integer between 1000 and 2026"}
+
+### GET list with genre + sort + order -> 200
+HTTP/1.1 200 OK
+X-Powered-By: Express
+Access-Control-Allow-Origin: http://localhost:5173
+Vary: Origin
+Content-Type: application/json; charset=utf-8
+Content-Length: 247
+ETag: W/"f7-LKODfwPXptRJQKDIRvZfp4ZUSGo"
+Date: Tue, 24 Nov 2026 20:28:09 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+[{"id":6,"title":"Harry Potter and the Philosopher's Stone","author":"J.K. Rowling","year":1997,"genre":"fantasy","read":true,"rating":3},{"id":1,"title":"The Hobbit","author":"J.R.R. Tolkien","year":1937,"genre":"fantasy","read":true,"rating":5}]
+
+### GET repeated parameter -> 400
+HTTP/1.1 400 Bad Request
+X-Powered-By: Express
+Access-Control-Allow-Origin: http://localhost:5173
+Vary: Origin
+Content-Type: application/json; charset=utf-8
+Content-Length: 38
+ETag: W/"26-lxepMkDRVvPlaLI1MymRjo2aMRU"
+Date: Tue, 24 Nov 2026 20:28:09 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+{"error":"genre must not be repeated"}
+
+### GET one book -> 200
+HTTP/1.1 200 OK
+X-Powered-By: Express
+Access-Control-Allow-Origin: http://localhost:5173
+Vary: Origin
+Content-Type: application/json; charset=utf-8
+Content-Length: 101
+ETag: W/"65-S21Ro1Z1WZJigG5AjrvC85yhTFI"
+Date: Tue, 24 Nov 2026 20:28:09 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+{"id":2,"title":"Dune","author":"Frank Herbert","year":1965,"genre":"fiction","read":true,"rating":4}
+
+### GET missing book -> 404
+HTTP/1.1 404 Not Found
+X-Powered-By: Express
+Access-Control-Allow-Origin: http://localhost:5173
+Vary: Origin
+Content-Type: application/json; charset=utf-8
+Content-Length: 31
+ETag: W/"1f-JtcFpnNSa6ewx3SRpZz8uv6nuiI"
+Date: Tue, 24 Nov 2026 20:28:09 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+{"error":"No book with id 999"}
+
+### PATCH book 2 (only rating changes, read stays true)
+HTTP/1.1 200 OK
+X-Powered-By: Express
+Access-Control-Allow-Origin: http://localhost:5173
+Vary: Origin
+Content-Type: application/json; charset=utf-8
+Content-Length: 101
+ETag: W/"65-p8FMTUy/XHr0MEm4VB/wOyYKQ7E"
+Date: Tue, 24 Nov 2026 20:28:10 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+{"id":2,"title":"Dune","author":"Frank Herbert","year":1965,"genre":"fiction","read":true,"rating":5}
+
+### PUT book 2 (read and rating not sent -> back to defaults)
+HTTP/1.1 200 OK
+X-Powered-By: Express
+Access-Control-Allow-Origin: http://localhost:5173
+Vary: Origin
+Content-Type: application/json; charset=utf-8
+Content-Length: 105
+ETag: W/"69-FeFNKNY6VB9OUioHjQMssIgehJE"
+Date: Tue, 24 Nov 2026 20:28:10 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+{"id":2,"title":"Dune","author":"Frank Herbert","year":1965,"genre":"fiction","read":false,"rating":null}
+
+### DELETE book 8 -> 204
+HTTP/1.1 204 No Content
+X-Powered-By: Express
+Access-Control-Allow-Origin: http://localhost:5173
+Vary: Origin
+Date: Tue, 24 Nov 2026 20:28:10 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+
+
+### DELETE book 8 again -> 404
+HTTP/1.1 404 Not Found
+X-Powered-By: Express
+Access-Control-Allow-Origin: http://localhost:5173
+Vary: Origin
+Content-Type: application/json; charset=utf-8
+Content-Length: 29
+ETag: W/"1d-acjag0gQGDmrbEt22yY/W8WHJdQ"
+Date: Tue, 24 Nov 2026 20:28:10 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+{"error":"No book with id 8"}
+
+### GET /api/stats (after)
+HTTP/1.1 200 OK
+X-Powered-By: Express
+Access-Control-Allow-Origin: http://localhost:5173
+Vary: Origin
+Content-Type: application/json; charset=utf-8
+Content-Length: 125
+ETag: W/"7d-07IWBYyHAW65TTm14G1I66aPtEY"
+Date: Tue, 24 Nov 2026 20:28:10 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+{"total":7,"read":3,"unread":4,"averageRating":4,"byGenre":{"fantasy":2,"fiction":2,"history":1,"science":1,"non-fiction":1}}
 ```
 
 ## Preflight (`OPTIONS`) in the Network tab
