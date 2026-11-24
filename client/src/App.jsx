@@ -23,7 +23,7 @@ export default function App() {
     setError(null);
     api
       .getBooks(filters, controller.signal)
-      .then((data) => setBooks(data))
+      .then((data) => setBooks(Array.isArray(data) ? data : [])) 
       .catch((err) => {
         if (err.name !== 'AbortError') {
           setError(err.message);
