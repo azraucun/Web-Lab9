@@ -46,3 +46,26 @@ export async function createBook(data) {
   books = [...books, newBook]; 
   return newBook;
 }
+
+// Replaces the book with this id by a new object. Returns the new book, or null if not found.
+// Used by both PUT (complete body) and PATCH (merged body).
+export async function replaceBook(id, data) {
+  await sleep(DELAY_MS);
+  const exists = books.some((book) => book.id === id);
+  if (!exists) {
+    return null;
+  }
+  const updated = { id, ...data };
+  books = books.map((book) => (book.id === id ? updated : book)); // new array
+  return updated;
+}
+
+export async function deleteBook(id) {
+  await sleep(DELAY_MS);
+  const exists = books.some((book) => book.id === id);
+  if (!exists) {
+    return false;
+  }
+  books = books.filter((book) => book.id !== id); // new array
+  return true;
+}

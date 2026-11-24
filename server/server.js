@@ -1,8 +1,7 @@
 import express from 'express';
 import cors from 'cors';
-import { getAllBooks, getBookById, findDuplicate, createBook } from './booksStore.js';
 import { parseId, isPlainObject, buildBook, validateBook } from './validate.js';
-
+import { getAllBooks, getBookById, findDuplicate, createBook, replaceBook } from './booksStore.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -41,6 +40,72 @@ app.post('/api/books', async (req, res) => {
       error: `A book with this title and author already exists (id ${duplicate.id})`,
     });
   }
+
+
+  // PUT /api/books/:id -> replace a book with a complete body
+app.put('/api/books/:id', async (req, res) => {
+  const id = parseId(req.params.id);
+  if (id === null) {
+    return res.status(400).json({ error: 'id must be a positive integer' });
+  }
+  if (!isPlainObject(req.body)) {
+    return res.status(400).json({ error: 'Request body must be a JSON object' });
+  }
+
+  const existing = await getBookById(id);
+  if (!existing) {
+    return res.status(404).json({ error: `No book with id ${id}` });
+  }
+
+  const book = buildBook(req.body); // missing read/rating fall back to the defaults
+  const validationError = validateBook(book);
+  if (validationError) {
+    return res.status(400).json({ error: validationError });
+  }
+
+  const duplicate = await findDuplicate(book.title, book.author, id);
+  if (duplicate) {
+    return res.status(409).json({
+      error: `A book with this title and author already exists (id ${duplicate.id})`,
+    });
+  }
+
+  const updated = await replaceBook(id, book);
+  res.json(updated);
+});
+
+// PATCH /api/books/:id -> change only the fields that were sent
+app.patch('/api/books/:id', async (req, res) => {
+  const id = parseId(req.params.id);
+  if (id === null) {
+    return res.status(400).json({ error: 'id must be a positive integer' });
+  }
+  if (!isPlainObject(req.body)) {
+    return res.status(400).json({ error: 'Request body must be a JSON object' });
+  }
+
+  const existing = await getBookById(id);
+  if (!existing) {
+    return res.status(404).json({ error: `No book with id ${id}` });
+  }
+
+  // Merge first (old values + changes), then validate the result like a complete book
+  const merged = buildBook({ ...existing, ...req.body });
+  const validationError = validateBook(merged);
+  if (validationError) {
+    return res.status(400).json({ error: validationError });
+  }
+
+  const duplicate = await findDuplicate(merged.title, merged.author, id);
+  if (duplicate) {
+    return res.status(409).json({
+      error: `A book with this title and author already exists (id ${duplicate.id})`,
+    });
+  }
+
+  const updated = await replaceBook(id, merged);
+  res.json(updated);
+});
 
   const created = await createBook(book);
   res.status(201).location(`/api/books/${created.id}`).json(created);
