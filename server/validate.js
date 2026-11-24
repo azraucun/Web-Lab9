@@ -53,3 +53,50 @@ export function validateBook(book) {
   }
   return null;
 }
+
+const SORT_FIELDS = ['title', 'author', 'year', 'rating'];
+const QUERY_NAMES = ['genre', 'read', 'q', 'sort', 'order', 'limit', 'page'];
+
+// Checks the query string of GET /api/books. Returns { error } or { options }.
+export function parseListQuery(query) {
+  for (const name of QUERY_NAMES) {
+    if (Array.isArray(query[name])) {
+      return { error: `${name} must not be repeated` };
+    }
+  }
+
+  const { genre, read, q, sort, order = 'asc', limit = '50', page = '1' } = query;
+
+  if (genre !== undefined && !GENRES.includes(genre)) {
+    return { error: `genre must be one of: ${GENRES.join(', ')}` };
+  }
+  if (read !== undefined && read !== 'true' && read !== 'false') {
+    return { error: 'read must be true or false' };
+  }
+  if (sort !== undefined && !SORT_FIELDS.includes(sort)) {
+    return { error: `sort must be one of: ${SORT_FIELDS.join(', ')}` };
+  }
+  if (order !== 'asc' && order !== 'desc') {
+    return { error: 'order must be asc or desc' };
+  }
+  const limitNumber = Number(limit);
+  if (!Number.isInteger(limitNumber) || limitNumber < 1 || limitNumber > 50) {
+    return { error: 'limit must be an integer from 1 to 50' };
+  }
+  const pageNumber = Number(page);
+  if (!Number.isInteger(pageNumber) || pageNumber < 1) {
+    return { error: 'page must be a positive integer' };
+  }
+
+  return {
+    options: {
+      genre,
+      read: read === undefined ? undefined : read === 'true',
+      q: typeof q === 'string' ? q.trim().toLowerCase() : '',
+      sort: sort ?? 'id',
+      order,
+      limit: limitNumber,
+      page: pageNumber,
+    },
+  };
+}
